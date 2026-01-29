@@ -1,0 +1,11 @@
+# frontend
+frontend/node_modules
+frontend/.expo
+frontend/dist
+
+# backend
+backend/node_modules
+backend/dist
+
+# env
+.env
