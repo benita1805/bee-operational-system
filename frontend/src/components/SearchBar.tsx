@@ -1,104 +1,62 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import React, { useMemo } from "react";
-import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import React from "react";
+import { StyleSheet, TextInput, View } from "react-native";
+
 import { colors } from "../theme/colors";
-import { ui } from "../theme/ui";
 
 type Props = {
-  title: string;
-  subtitle?: string;
-  showBack?: boolean;
-  rightSlot?: React.ReactNode;
+  value: string;
+  onChangeText: (text: string) => void;
+  placeholder?: string;
 };
 
-export default function AppHeader({ title, subtitle, showBack = false, rightSlot }: Props) {
-  const router = useRouter();
-
-  const safeSubtitle = useMemo(() => (subtitle ? subtitle.trim() : ""), [subtitle]);
-
+export default function SearchBar({
+  value,
+  onChangeText,
+  placeholder = "Search...",
+}: Props) {
   return (
-    <Animated.View entering={FadeInDown.duration(280)} style={styles.wrap}>
-      <View style={styles.row}>
-        {/* Back */}
-        <View style={styles.left}>
-          {showBack ? (
-            <TouchableOpacity style={styles.backBtn} activeOpacity={0.85} onPress={() => router.back()}>
-              <Ionicons name="chevron-back" size={18} color={colors.black} />
-            </TouchableOpacity>
-          ) : (
-            <View style={{ width: 38 }} />
-          )}
-        </View>
+    <View style={styles.wrap}>
+      <Ionicons
+        name="search"
+        size={18}
+        color="#9CA3AF"
+        style={styles.icon}
+      />
 
-        {/* Title */}
-        <View style={styles.center}>
-          <Text style={styles.title} numberOfLines={1}>
-            {title}
-          </Text>
-          {!!safeSubtitle && (
-            <Text style={styles.sub} numberOfLines={1}>
-              {safeSubtitle}
-            </Text>
-          )}
-        </View>
-
-        {/* Right slot */}
-        <View style={styles.right}>{rightSlot ?? <View style={{ width: 38 }} />}</View>
-      </View>
-
-      <View style={styles.divider} />
-    </Animated.View>
+      <TextInput
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor="#9CA3AF"
+        style={styles.input}
+        autoCorrect={false}
+        autoCapitalize="none"
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: {
-    paddingTop: Platform.OS === "ios" ? 54 : 22,
-    paddingHorizontal: 16,
-    backgroundColor: colors.lightGray,
-  },
-
-  row: {
     flexDirection: "row",
     alignItems: "center",
-    paddingBottom: 14,
-  },
-
-  left: { width: 44, alignItems: "flex-start" },
-  right: { width: 44, alignItems: "flex-end" },
-
-  backBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 999,
     backgroundColor: "#FFFFFF",
-    justifyContent: "center",
-    alignItems: "center",
     borderWidth: 1,
     borderColor: "#E6E8EC",
-    ...ui.shadow.sm,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    height: 46,
   },
 
-  center: { flex: 1, alignItems: "center" },
-
-  title: {
-    fontSize: 18,
-    fontWeight: "900",
-    color: colors.black,
-    letterSpacing: -0.2,
+  icon: {
+    marginRight: 8,
   },
 
-  sub: {
-    marginTop: 4,
-    fontSize: 12,
+  input: {
+    flex: 1,
+    fontSize: 14,
     fontWeight: "700",
-    color: colors.gray,
-  },
-
-  divider: {
-    height: 1,
-    backgroundColor: "#E6E8EC",
+    color: colors.black,
   },
 });

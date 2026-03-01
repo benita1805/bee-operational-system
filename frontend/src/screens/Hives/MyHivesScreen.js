@@ -4,15 +4,19 @@ import { useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
+import { COLORS } from "../../constants/theme";
+import { colors } from "../../theme/colors";
+
 import AppHeader from "../../components/AppHeader";
 import Card from "../../components/Card";
 import FilterRow from "../../components/FilterRow";
 import HiveCard from "../../components/HiveCard";
 import SearchBar from "../../components/SearchBar";
 
-import { loadData, StorageKeys } from "../../services/storage";
-import { colors } from "../../theme/colors";
+import { fetchHives } from "../../services/hiveApi";
 import { daysRemaining } from "../../utils/date";
+
+import { ScreenContainer } from "../../components/layout/ScreenContainer";
 
 export default function MyHivesScreen() {
     const router = useRouter();
@@ -27,8 +31,8 @@ export default function MyHivesScreen() {
             let active = true;
 
             const load = async () => {
-                const data = await loadData(StorageKeys.HIVES, []);
-                if (active) setHives(data || []); // ✅ FIX: no crash on null
+                const data = await fetchHives();
+                if (active) setHives(data || []);
             };
 
             load();
@@ -42,10 +46,10 @@ export default function MyHivesScreen() {
     // ✅ Premium quick stats
     const stats = useMemo(() => {
         const total = hives.length;
-        const active = hives.filter((h) => h.status === "Active").length;
+        const active = hives.filter((h) => h.status === "ACTIVE").length;
 
         const dueSoon = hives.filter((h) => {
-            const d = daysRemaining(h.harvestDate);
+            const d = daysRemaining(h.expected_harvest_date);
             return d !== null && d >= 0 && d <= 7;
         }).length;
 
@@ -64,15 +68,15 @@ export default function MyHivesScreen() {
             list = list.filter(
                 (h) =>
                     (h.title || "").toLowerCase().includes(s) ||
-                    (h.farmerName || "").toLowerCase().includes(s) ||
-                    (h.fieldLocation || "").toLowerCase().includes(s)
+                    (h.farmer_name || "").toLowerCase().includes(s) ||
+                    (h.field_location || "").toLowerCase().includes(s)
             );
         }
 
         // ✅ FIX: correct sort active first
         list.sort((a, b) => {
-            const aActive = a.status === "Active" ? 0 : 1;
-            const bActive = b.status === "Active" ? 0 : 1;
+            const aActive = a.status === "ACTIVE" ? 0 : 1;
+            const bActive = b.status === "ACTIVE" ? 0 : 1;
             return aActive - bActive;
         });
 
@@ -80,95 +84,98 @@ export default function MyHivesScreen() {
     }, [hives, search, status]);
 
     return (
-        <View style={{ flex: 1, backgroundColor: colors.lightGray }}>
+        <View style={{ flex: 1 }}>
             <AppHeader title="My Hives" subtitle="Multi-hive management" />
 
-            {/* ✅ Premium Stats Row */}
-            <View style={styles.statsRow}>
-                <Card style={styles.statCard}>
-                    <Text style={styles.statLabel}>Total</Text>
-                    <Text style={styles.statValue}>{stats.total}</Text>
-                </Card>
+            <ScreenContainer>
 
-                <Card style={styles.statCard}>
-                    <Text style={styles.statLabel}>Active</Text>
-                    <Text style={styles.statValue}>{stats.active}</Text>
-                </Card>
+                {/* ✅ Premium Stats Row */}
+                <View style={styles.statsRow}>
+                    <Card style={styles.statCard}>
+                        <Text style={styles.statLabel}>Total</Text>
+                        <Text style={styles.statValue}>{stats.total}</Text>
+                    </Card>
 
-                <Card style={styles.statCard}>
-                    <Text style={styles.statLabel}>Due Soon</Text>
-                    <Text style={styles.statValue}>{stats.dueSoon}</Text>
-                </Card>
-            </View>
+                    <Card style={styles.statCard}>
+                        <Text style={styles.statLabel}>Active</Text>
+                        <Text style={styles.statValue}>{stats.active}</Text>
+                    </Card>
 
-            <SearchBar
-                value={search}
-                onChangeText={setSearch}
-                placeholder="Search hive / farmer / location..."
-            />
-
-            <FilterRow
-                options={[
-                    { label: "All", value: "ALL" },
-                    { label: "Active", value: "Active" },
-                    { label: "Harvested", value: "Harvested" },
-                    { label: "Relocated", value: "Relocated" },
-                ]}
-                selected={status}
-                onSelect={setStatus}
-            />
-
-            {/* ✅ Premium Empty State */}
-            {filtered.length === 0 ? (
-                <View style={{ paddingHorizontal: 16, marginTop: 8 }}>
-                    <Card style={styles.emptyCard}>
-                        <View style={styles.emptyIconWrap}>
-                            <Ionicons name="cube-outline" size={26} color={colors.amberDark} />
-                        </View>
-
-                        <Text style={styles.emptyTitle}>No hives yet</Text>
-
-                        <Text style={styles.emptyMsg}>
-                            Add your first hive placement record to start tracking harvest time and hive activity.
-                        </Text>
-
-                        <TouchableOpacity
-                            style={styles.emptyBtn}
-                            activeOpacity={0.9}
-                            onPress={() => router.push("/(hives)/hive-form")}
-                        >
-                            <Ionicons name="add" size={18} color={colors.black} />
-                            <Text style={styles.emptyBtnText}>Add Hive</Text>
-                        </TouchableOpacity>
+                    <Card style={styles.statCard}>
+                        <Text style={styles.statLabel}>Due Soon</Text>
+                        <Text style={styles.statValue}>{stats.dueSoon}</Text>
                     </Card>
                 </View>
-            ) : (
-                <FlatList
-                    data={filtered}
-                    keyExtractor={(item) => item.id}
-                    contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
-                    renderItem={({ item }) => (
-                        <HiveCard
-                            hive={item}
-                            onPress={() =>
-                                router.push({
-                                    pathname: "/(hives)/hive-detail",
-                                    params: { hiveId: item.id },
-                                })
-                            }
-                        />
-                    )}
-                />
-            )}
 
-            {/* ✅ Premium FAB */}
-            <TouchableOpacity
-                style={styles.fab}
-                onPress={() => router.push("/(hives)/hive-form")}
-                activeOpacity={0.85}
-            >
-                <Ionicons name="add" size={26} color={colors.black} />
-            </TouchableOpacity>
+                <SearchBar
+                    value={search}
+                    onChangeText={setSearch}
+                    placeholder="Search hive / farmer / location..."
+                />
+
+                <FilterRow
+                    options={[
+                        { label: "All", value: "ALL" },
+                        { label: "Active", value: "ACTIVE" },
+                        { label: "Harvested", value: "HARVESTED" },
+                        { label: "Relocated", value: "RELOCATED" },
+                    ]}
+                    selected={status}
+                    onSelect={setStatus}
+                />
+
+                {/* ✅ Premium Empty State */}
+                {filtered.length === 0 ? (
+                    <View style={{ paddingHorizontal: 16, marginTop: 8 }}>
+                        <Card style={styles.emptyCard}>
+                            <View style={styles.emptyIconWrap}>
+                                <Ionicons name="cube-outline" size={26} color={colors.amberDark} />
+                            </View>
+
+                            <Text style={styles.emptyTitle}>No hives yet</Text>
+
+                            <Text style={styles.emptyMsg}>
+                                Add your first hive placement record to start tracking harvest time and hive activity.
+                            </Text>
+
+                            <TouchableOpacity
+                                style={styles.emptyBtn}
+                                activeOpacity={0.9}
+                                onPress={() => router.push("/(hives)/hive-form")}
+                            >
+                                <Ionicons name="add" size={18} color={colors.black} />
+                                <Text style={styles.emptyBtnText}>Add Hive</Text>
+                            </TouchableOpacity>
+                        </Card>
+                    </View>
+                ) : (
+                    <FlatList
+                        data={filtered}
+                        keyExtractor={(item) => item.id}
+                        contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
+                        renderItem={({ item }) => (
+                            <HiveCard
+                                hive={item}
+                                onPress={() =>
+                                    router.push({
+                                        pathname: "/(hives)/hive-detail",
+                                        params: { hiveId: item.id },
+                                    })
+                                }
+                            />
+                        )}
+                    />
+                )}
+
+                {/* ✅ Premium FAB */}
+                <TouchableOpacity
+                    style={styles.fab}
+                    onPress={() => router.push("/(hives)/hive-form")}
+                    activeOpacity={0.85}
+                >
+                    <Ionicons name="add" size={26} color={colors.black} />
+                </TouchableOpacity>
+            </ScreenContainer>
         </View>
     );
 }
@@ -241,7 +248,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         gap: 8,
         alignItems: "center",
-        shadowColor: "#000",
+        shadowColor: COLORS.textPrimary,
         shadowOpacity: 0.12,
         shadowRadius: 16,
         shadowOffset: { width: 0, height: 10 },
@@ -264,7 +271,7 @@ const styles = StyleSheet.create({
         backgroundColor: colors.amber,
         justifyContent: "center",
         alignItems: "center",
-        shadowColor: "#000",
+        shadowColor: COLORS.textPrimary,
         shadowOpacity: 0.18,
         shadowRadius: 18,
         shadowOffset: { width: 0, height: 10 },

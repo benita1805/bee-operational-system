@@ -1,0 +1,166 @@
+================================================================================
+  BEE OPERATIONAL SYSTEM — UX & NAVIGATION FLOW REFERENCE
+================================================================================
+
+ARCHITECTURE
+------------
+Uses Expo Router (file-based routing). All routes live in app/.
+Screens in src/screens/ contain the actual UI logic.
+app/ files are thin wrappers that mount screens into the router.
+
+
+--------------------------------------------------------------------------------
+1. APP ENTRY & AUTH GUARD
+--------------------------------------------------------------------------------
+
+App opens → app/index.tsx
+  → reads AuthContext (AsyncStorage: authToken + userData)
+  → if loading        : show spinner
+  → if user exists    : router.replace("/(tabs)")   → Dashboard
+  → if no user        : router.replace("/(auth)/login")
+
+DOUBLE GUARD (app/_layout.tsx):
+  Runs useEffect on every navigation, watching URL segments.
+  - Not in (auth) + not logged in  → force redirect to /(auth)/login
+  - In (auth) + already logged in  → force redirect to /(tabs)
+  This makes all protected routes unreachable without a valid session.
+
+
+--------------------------------------------------------------------------------
+2. AUTHENTICATION FLOW  —  app/(auth)/login.tsx
+--------------------------------------------------------------------------------
+
+Stage 1 — PHONE:
+  User enters phone number → tap "Request OTP"
+    → AuthContext.requestOtp() → POST /api/auth/request-otp
+    → on success: UI switches to OTP stage
+
+Stage 2 — OTP:
+  User enters OTP → tap "Verify"
+    → AuthContext.verifyOtp() → POST /api/auth/verify-otp
+    → on success:
+        saves token to AsyncStorage("authToken")
+        saves user to AsyncStorage("userData")
+        sets user in context
+    → router.replace("/(tabs)")  ←  lands on Dashboard
+
+NOTE: router.replace() is used (not push), so login is removed
+      from history. The back button cannot return to login after auth.
+
+
+--------------------------------------------------------------------------------
+3. MAIN TAB BAR  —  app/(tabs)/
+--------------------------------------------------------------------------------
+
+Tab          Route               Screen
+-----------  ------------------  ---------------------------------
+Dashboard    /(tabs)  (index)    src/screens/DashboardScreen.js
+Map          /(tabs)/map         src/screens/MapScreen.tsx
+Hives        /(tabs)/hives       src/screens/Hives/MyHivesScreen.js
+Advisory     /(tabs)/farmers     src/screens/Farmers/FindFarmersScreen.js
+Insights     /(tabs)/insights    app/(tabs)/insights.tsx
+Profile      /(tabs)/profile     app/(tabs)/profile.tsx
+
+
+--------------------------------------------------------------------------------
+4. DEEP-LINK / STACK ROUTES  (navigated via router.push)
+--------------------------------------------------------------------------------
+
+HIVES GROUP  —  app/(hives)/
+  MyHivesScreen → tap FAB
+    → router.push("/(hives)/hive-form")
+    → HiveFormScreen.js  — add a new hive
+
+  MyHivesScreen → tap a hive card
+    → router.push({ pathname: "/(hives)/hive-detail", params: { hiveId } })
+    → HiveDetailScreen.js  — view / edit hive
+
+FARMERS GROUP  —  app/(farmers)/
+  FindFarmersScreen → tap FAB
+    → router.push("/farmer-register")
+    → FarmerRegisterScreen.js  — register new farmer
+
+  FindFarmersScreen → tap "Message" on a farmer card
+    → router.push({ pathname: "/farmer-chat", params: { farmer } })
+    → FarmerChatScreen.js  — message a farmer
+
+PROFILE STACK  —  app/profile/
+  ProfileScreen → tap "Farming Manual"
+    → router.push("/profile/manual")
+    → ManualScreen  — offline beekeeping guide with bookmarks
+
+  ProfileScreen → tap "Flowering Calendar"
+    → router.push("/profile/calendar")
+    → FloweringCalendarScreen  — seasonal crop/flowering data by region
+
+  ProfileScreen → tap "Settings"
+    → router.push("/profile/settings")
+    → SettingsScreen  — account info, cache clear, logout
+
+DASHBOARD QUICK ACTIONS:
+  → router.push("/(tabs)/farmers")   — Find Farmers tab
+  → router.push("/profile/calendar") — Flowering Calendar
+  → router.push("/profile/manual")   — Manual
+  → router.push("/(tabs)/insights")  — AI Insights tab
+
+
+--------------------------------------------------------------------------------
+5. LOGOUT FLOW
+--------------------------------------------------------------------------------
+
+Settings or Profile → tap "Logout"
+  → Alert.alert() confirm dialog
+  → on confirm: AuthContext.logout()
+      removes "authToken" from AsyncStorage
+      removes "userData" from AsyncStorage
+      sets user = null in context
+  → router.replace("/(auth)/login")
+  → _layout.tsx auth guard also catches user=null and enforces redirect
+
+
+--------------------------------------------------------------------------------
+6. FULL FLOW DIAGRAM
+--------------------------------------------------------------------------------
+
+App Start
+    │
+    ▼
+[index.tsx] ── no token ─────────────────────► [Login Screen]
+    │                                                │
+    │ has token                           Request OTP → Verify OTP
+    │                                                │
+    ▼                                     router.replace("/(tabs)")
+[Tab Bar] ───────────────────────────────────────────────────
+    │
+    ├── Dashboard ──► Quick Actions ──► push to Farmers / Calendar / Manual / Insights
+    │                 Stats overview
+    │
+    ├── Map ─────────► Heatmap (flowering forecast) + Farmer markers
+    │
+    ├── Hives ───────► List hives
+    │                    ├── FAB        → /hive-form    (add hive)
+    │                    └── Tap card   → /hive-detail  (view/edit)
+    │
+    ├── Advisory ────► Find Farmers (sorted by GPS distance)
+    │                    ├── FAB        → /farmer-register  (add farmer)
+    │                    └── Message    → /farmer-chat      (chat)
+    │
+    ├── Insights ────► AI hive risk score & recommendations
+    │
+    └── Profile ─────► Manual / Calendar / Settings
+                           └── Settings → Logout → [Login Screen]
+
+
+--------------------------------------------------------------------------------
+7. KEY DESIGN NOTES
+--------------------------------------------------------------------------------
+
+- Auth state is persisted via AsyncStorage. Token is checked on every app launch.
+- (groupName) folders in Expo Router are route groups — they don't add to the
+  URL path. So app/(hives)/hive-detail is resolved as /hive-detail.
+- All UI logic lives in src/screens/. The app/ files are 3-line wrappers only.
+- MapScreen has a web-specific variant: src/screens/MapScreen.web.tsx
+  (react-native-maps is not supported on web, so Expo picks the .web.tsx version).
+- Farmers are admin-provided records — they have no login or auth flow.
+
+================================================================================

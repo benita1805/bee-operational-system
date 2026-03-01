@@ -3,9 +3,10 @@ import React, { useCallback, useMemo, useState } from "react";
 import { FlatList, StyleSheet, Text, View } from "react-native";
 
 import AppHeader from "../../src/components/AppHeader";
-import Card from "../../src/components/Card";
 import EmptyState from "../../src/components/EmptyState";
+import { AppCard } from "../../src/components/ui/AppCard";
 
+import { fetchHives } from "../../src/services/hiveApi";
 import { loadData, StorageKeys } from "../../src/services/storage";
 import { colors } from "../../src/theme/colors";
 
@@ -39,8 +40,26 @@ export default function AIInsightsScreen() {
             let active = true;
 
             const load = async () => {
-                const data = await loadData(StorageKeys.HIVES, []);
-                if (active) setHives(data);
+                try {
+                    const data = await fetchHives();
+                    if (active) {
+                        const mapped: Hive[] = data.map((h: any) => ({
+                            id: h.id,
+                            title: h.title,
+                            farmerName: h.farmer_name || "",
+                            fieldLocation: h.field_location,
+                            placementDate: h.placement_date,
+                            harvestDate: h.expected_harvest_date || h.placement_date,
+                            status: h.status || "Active",
+                            notes: h.notes
+                        }));
+                        setHives(mapped);
+                    }
+                } catch (error) {
+                    console.error("Failed to load cloud hives for insights:", error);
+                    const data = await loadData(StorageKeys.HIVES, []);
+                    if (active) setHives(data);
+                }
             };
 
             load();
@@ -82,13 +101,13 @@ export default function AIInsightsScreen() {
             <AppHeader title="AI Insights" subtitle="Risk scoring + smart recommendations" />
 
             <View style={{ paddingHorizontal: 16, marginTop: 6 }}>
-                <Card style={styles.summaryCard}>
+                <AppCard style={styles.summaryCard}>
                     <Text style={styles.summaryTitle}>Overall Risk Score</Text>
                     <Text style={styles.summaryValue}>{overallScore}/100</Text>
                     <Text style={styles.summaryNote}>
                         Based on harvest schedule, season suitability, hive status and notes.
                     </Text>
-                </Card>
+                </AppCard>
             </View>
 
             {priority.length === 0 ? (
@@ -102,7 +121,7 @@ export default function AIInsightsScreen() {
                     keyExtractor={(item) => item.id}
                     contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
                     renderItem={({ item }) => (
-                        <Card style={styles.hiveCard}>
+                        <AppCard style={styles.hiveCard}>
                             <View style={styles.row}>
                                 <Text style={styles.hiveTitle}>{item.title}</Text>
 
@@ -136,7 +155,7 @@ export default function AIInsightsScreen() {
                             {item.aiRecs.length > 3 && (
                                 <Text style={styles.more}>+ {item.aiRecs.length - 3} more tips</Text>
                             )}
-                        </Card>
+                        </AppCard>
                     )}
                 />
             )}

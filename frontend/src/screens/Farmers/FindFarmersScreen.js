@@ -8,14 +8,27 @@ import Card from "../../components/Card";
 import EmptyState from "../../components/EmptyState";
 import FarmerCard from "../../components/FarmerCard";
 import FilterRow from "../../components/FilterRow";
-import Screen from "../../components/Screen";
 import SearchBar from "../../components/SearchBar";
-
-import { distanceKm } from "../../services/distance";
 import { fetchFarmers } from "../../services/farmersApi";
 import { getCurrentLocation } from "../../services/location";
 import { colors } from "../../theme/colors";
 import { ui } from "../../theme/ui";
+const distanceKm = (lat1, lon1, lat2, lon2) => {
+    const R = 6371; // Earth radius in km
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+
+    return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+};
+
+import { ScreenContainer } from "../../components/layout/ScreenContainer";
 
 export default function FindFarmersScreen() {
     const router = useRouter();
@@ -34,7 +47,10 @@ export default function FindFarmersScreen() {
 
             const withDistance = farmersCloud.map((f) => ({
                 ...f,
-                distanceKm: distanceKm(beekeeperLoc.lat, beekeeperLoc.lon, f.lat, f.lon),
+                // Map backend fields to frontend-friendly names for local use or just use backend names
+                cropType: f.crops && f.crops.length > 0 ? f.crops[0] : "Mixed",
+                locationText: f.location || "Unknown",
+                distanceKm: distanceKm(beekeeperLoc.lat, beekeeperLoc.lon, f.latitude || 0, f.longitude || 0),
             }));
 
             setFarmers(withDistance);
@@ -70,10 +86,10 @@ export default function FindFarmersScreen() {
     }, [farmers, cropFilter, search, sortBy]);
 
     return (
-        <View style={{ flex: 1, backgroundColor: colors.lightGray }}>
+        <View style={{ flex: 1 }}>
             <AppHeader title="Find Farmers" subtitle="Search verified crop owners for hive placement" />
 
-            <Screen>
+            <ScreenContainer>
                 {/* Search + Filters in a premium container */}
                 <View style={styles.topArea}>
                     <Card style={styles.filterCard}>
@@ -135,7 +151,7 @@ export default function FindFarmersScreen() {
                 >
                     <Ionicons name="add" size={24} color={colors.black} />
                 </TouchableOpacity>
-            </Screen>
+            </ScreenContainer>
         </View>
     );
 }

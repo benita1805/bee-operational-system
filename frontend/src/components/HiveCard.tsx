@@ -6,7 +6,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-na
 import { colors } from "../theme/colors";
 import { ui } from "../theme/ui";
 import { daysRemaining } from "../utils/date";
-import Card from "./Card";
+import { AppCard } from "./ui/AppCard";
 
 export type Hive = {
   id: string;
@@ -54,11 +54,11 @@ export default function HiveCard({ hive, onPress }: Props) {
     <Animated.View style={[styles.wrap, aStyle]}>
       <Pressable
         onPress={onPress}
-        onPressIn={() => (scale.value = withTiming(0.992, { duration: 90 }))}
+        onPressIn={() => (scale.value = withTiming(0.96, { duration: 90 }))}
         onPressOut={() => (scale.value = withTiming(1, { duration: 120 }))}
         style={({ pressed }) => [{ opacity: pressed ? 0.97 : 1 }]}
       >
-        <Card style={styles.card}>
+        <AppCard style={styles.card}>
           <View style={styles.topRow}>
             <View style={{ flex: 1 }}>
               <Text style={styles.title} numberOfLines={1}>
@@ -101,7 +101,7 @@ export default function HiveCard({ hive, onPress }: Props) {
               </Text>
             </View>
           </View>
-        </Card>
+        </AppCard>
       </Pressable>
     </Animated.View>
   );

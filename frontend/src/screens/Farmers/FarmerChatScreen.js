@@ -1,10 +1,9 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import AppHeader from "../../components/AppHeader";
-import { listenMessages, sendMessage } from "../../services/chatApi";
-import { auth } from "../../services/firebase";
 import { colors } from "../../theme/colors";
+
 export default function FarmerChatScreen() {
     const params = useLocalSearchParams();
     const farmer = params?.farmer ? JSON.parse(params.farmer) : null;
@@ -15,23 +14,23 @@ export default function FarmerChatScreen() {
     ]);
 
     useEffect(() => {
-        const unsubscribe = listenMessages(farmer.id, setMessages);
-        return unsubscribe;
-    }, []);
+        if (!farmer?.id) return;
+        // Firebase listenMessages removed. Using local state.
+    }, [farmer?.id]);
 
     const send = async () => {
         if (!msg.trim()) return;
 
-        await sendMessage(farmer.id, {
+        const newMessage = {
+            id: Date.now().toString(),
             text: msg,
-            from: auth.currentUser?.uid,
+            from: "me",
             createdAt: Date.now(),
-        });
+        };
 
+        setMessages([newMessage, ...messages]);
         setMsg("");
     };
-    const isMe = item.from === auth.currentUser?.uid;
-
     return (
         <View style={{ flex: 1, backgroundColor: colors.lightGray }}>
             <AppHeader title={`Chat: ${farmer?.name || "Farmer"}`} subtitle={farmer?.cropType} />
@@ -41,11 +40,14 @@ export default function FarmerChatScreen() {
                     data={messages}
                     inverted
                     keyExtractor={(item) => item.id}
-                    renderItem={({ item }) => (
-                        <View style={[styles.bubble, item.from === "me" ? styles.me : styles.them]}>
-                            <Text style={{ fontWeight: "700" }}>{item.text}</Text>
-                        </View>
-                    )}
+                    renderItem={({ item }) => {
+                        const isMe = item.from === "me";
+                        return (
+                            <View style={[styles.bubble, isMe ? styles.me : styles.them]}>
+                                <Text style={{ fontWeight: "700" }}>{item.text}</Text>
+                            </View>
+                        );
+                    }}
                 />
 
                 <View style={styles.row}>
@@ -60,7 +62,7 @@ export default function FarmerChatScreen() {
                     </TouchableOpacity>
                 </View>
 
-                <TouchableOpacity style={styles.back} onPress={() => routerack()}>
+                <TouchableOpacity style={styles.back} onPress={() => router.back()}>
                     <Text style={{ fontWeight: "900" }}>Back</Text>
                 </TouchableOpacity>
             </View>

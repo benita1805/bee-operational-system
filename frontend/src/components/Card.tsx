@@ -1,11 +1,11 @@
 // src/components/Card.tsx
 import React from "react";
-import { StyleSheet, View, ViewStyle } from "react-native";
+import { StyleProp, StyleSheet, View, ViewStyle } from "react-native";
 import { ui } from "../theme/ui";
 
 type Props = {
     children: React.ReactNode;
-    style?: ViewStyle;
+    style?: StyleProp<ViewStyle>;
     variant?: "default" | "soft" | "outline";
 };
 

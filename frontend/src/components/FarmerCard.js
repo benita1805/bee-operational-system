@@ -4,7 +4,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-na
 
 import { colors } from "../theme/colors";
 import { ui } from "../theme/ui";
-import Card from "./Card";
+import { AppCard } from "./ui/AppCard";
 
 export default function FarmerCard({ farmer, onMessage }) {
     const call = () => Linking.openURL(`tel:${farmer.phone}`);
@@ -37,10 +37,10 @@ export default function FarmerCard({ farmer, onMessage }) {
     return (
         <Animated.View style={aStyle}>
             <Pressable
-                onPressIn={() => (scale.value = withTiming(0.992, { duration: 90 }))}
+                onPressIn={() => (scale.value = withTiming(0.96, { duration: 90 }))}
                 onPressOut={() => (scale.value = withTiming(1, { duration: 120 }))}
             >
-                <Card style={styles.card}>
+                <AppCard style={styles.card}>
                     {/* Header */}
                     <View style={styles.topRow}>
                         <View style={{ flex: 1 }}>
@@ -87,7 +87,7 @@ export default function FarmerCard({ farmer, onMessage }) {
                             primary
                         />
                     </View>
-                </Card>
+                </AppCard>
             </Pressable>
         </Animated.View>
     );

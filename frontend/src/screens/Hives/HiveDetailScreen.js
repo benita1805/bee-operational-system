@@ -5,9 +5,11 @@ import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "rea
 
 import AppHeader from "../../components/AppHeader";
 import Card from "../../components/Card";
-import { loadData, saveData, StorageKeys } from "../../services/storage";
 import { colors } from "../../theme/colors";
 import { daysRemaining } from "../../utils/date";
+
+import { apiFetch } from "../../services/apiClient";
+import { fetchHives } from "../../services/hiveApi";
 
 export default function HiveDetailScreen() {
     const router = useRouter();
@@ -16,7 +18,7 @@ export default function HiveDetailScreen() {
 
     useEffect(() => {
         const load = async () => {
-            const all = await loadData(StorageKeys.HIVES, []);
+            const all = await fetchHives();
             setHive(all.find((h) => h.id === hiveId));
         };
         load();
@@ -29,9 +31,13 @@ export default function HiveDetailScreen() {
                 text: "Delete",
                 style: "destructive",
                 onPress: async () => {
-                    const all = await loadData(StorageKeys.HIVES, []);
-                    await saveData(StorageKeys.HIVES, all.filter((h) => h.id !== hiveId));
-                    router.back();
+                    try {
+                        await apiFetch(`/hives/${hiveId}`, { method: "DELETE" });
+                        router.back();
+                    } catch (error) {
+                        console.error("Error deleting hive:", error);
+                        Alert.alert("Error", "Failed to delete hive from cloud");
+                    }
                 },
             },
         ]);
@@ -45,7 +51,7 @@ export default function HiveDetailScreen() {
         );
     }
 
-    const remaining = daysRemaining(hive.harvestDate);
+    const remaining = daysRemaining(hive.expected_harvest_date);
 
     return (
         <View style={{ flex: 1, backgroundColor: colors.lightGray }}>
@@ -57,19 +63,19 @@ export default function HiveDetailScreen() {
                     <Text style={styles.v}>{hive.title}</Text>
 
                     <Text style={styles.k}>Farmer</Text>
-                    <Text style={styles.v}>{hive.farmerName}</Text>
+                    <Text style={styles.v}>{hive.farmer_name || "—"}</Text>
 
                     <Text style={styles.k}>Field</Text>
-                    <Text style={styles.v}>{hive.fieldLocation}</Text>
+                    <Text style={styles.v}>{hive.field_location || "—"}</Text>
 
                     <Text style={styles.k}>Status</Text>
                     <Text style={styles.v}>{hive.status}</Text>
 
                     <Text style={styles.k}>Placement Date</Text>
-                    <Text style={styles.v}>{new Date(hive.placementDate).toDateString()}</Text>
+                    <Text style={styles.v}>{hive.placement_date ? new Date(hive.placement_date).toDateString() : "—"}</Text>
 
                     <Text style={styles.k}>Harvest Date</Text>
-                    <Text style={styles.v}>{new Date(hive.harvestDate).toDateString()}</Text>
+                    <Text style={styles.v}>{hive.expected_harvest_date ? new Date(hive.expected_harvest_date).toDateString() : "—"}</Text>
 
                     <Text style={styles.k}>Harvest Countdown</Text>
                     <Text style={styles.v}>

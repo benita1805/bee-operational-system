@@ -2,9 +2,11 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import AppHeader from "../../components/AppHeader";
+import { ScreenContainer } from "../../components/layout/ScreenContainer";
 import { addFarmer } from "../../services/farmersApi";
 import { colors } from "../../theme/colors";
 import { isValidPhone, required } from "../../utils/validators";
+
 export default function FarmerRegisterScreen() {
     const router = useRouter();
     const [name, setName] = useState("");
@@ -29,14 +31,11 @@ export default function FarmerRegisterScreen() {
 
         const newFarmer = {
             name,
-            cropType,
-            locationText,
-            areaAcres: Number(areaAcres || 0),
-            phone,
-            whatsapp: whatsapp || phone,
-            lat: Number(lat || 0),
-            lon: Number(lon || 0),
-            createdAt: Date.now(),
+            crops: [cropType],
+            location: locationText,
+            latitude: Number(lat || 0),
+            longitude: Number(lon || 0),
+            // Note: phone, whatsapp and areaAcres are not in the current backend schema for farmers
         };
 
         await addFarmer(newFarmer);
@@ -46,26 +45,28 @@ export default function FarmerRegisterScreen() {
     };
 
     return (
-        <View style={{ flex: 1, backgroundColor: colors.lightGray }}>
+        <View style={{ flex: 1 }}>
             <AppHeader title="Register Farmer" subtitle="Add crop & field details" />
-            <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
-                <Field label="Farmer Name" value={name} onChangeText={setName} />
-                <Field label="Crop Type" value={cropType} onChangeText={setCropType} />
-                <Field label="Location (City/Area)" value={locationText} onChangeText={setLocationText} />
-                <Field label="Area (Acres)" value={areaAcres} onChangeText={setAreaAcres} keyboardType="numeric" />
-                <Field label="Phone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
-                <Field label="WhatsApp (optional)" value={whatsapp} onChangeText={setWhatsapp} keyboardType="phone-pad" />
-                <Field label="Latitude (optional)" value={lat} onChangeText={setLat} keyboardType="numeric" />
-                <Field label="Longitude (optional)" value={lon} onChangeText={setLon} keyboardType="numeric" />
+            <ScreenContainer>
+                <ScrollView contentContainerStyle={{ paddingVertical: 16, paddingBottom: 32 }}>
+                    <Field label="Farmer Name" value={name} onChangeText={setName} />
+                    <Field label="Crop Type" value={cropType} onChangeText={setCropType} />
+                    <Field label="Location (City/Area)" value={locationText} onChangeText={setLocationText} />
+                    <Field label="Area (Acres)" value={areaAcres} onChangeText={setAreaAcres} keyboardType="numeric" />
+                    <Field label="Phone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
+                    <Field label="WhatsApp (optional)" value={whatsapp} onChangeText={setWhatsapp} keyboardType="phone-pad" />
+                    <Field label="Latitude (optional)" value={lat} onChangeText={setLat} keyboardType="numeric" />
+                    <Field label="Longitude (optional)" value={lon} onChangeText={setLon} keyboardType="numeric" />
 
-                <TouchableOpacity style={styles.btn} onPress={submit}>
-                    <Text style={styles.btnText}>Save Farmer</Text>
-                </TouchableOpacity>
+                    <TouchableOpacity style={styles.btn} onPress={submit}>
+                        <Text style={styles.btnText}>Save Farmer</Text>
+                    </TouchableOpacity>
 
-                <TouchableOpacity style={styles.btnGhost} onPress={() => router.back()}>
-                    <Text style={styles.btnText}>Cancel</Text>
-                </TouchableOpacity>
-            </ScrollView>
+                    <TouchableOpacity style={styles.btnGhost} onPress={() => router.back()}>
+                        <Text style={styles.btnText}>Cancel</Text>
+                    </TouchableOpacity>
+                </ScrollView>
+            </ScreenContainer>
         </View>
     );
 }

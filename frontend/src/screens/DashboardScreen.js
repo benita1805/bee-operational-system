@@ -1,15 +1,19 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
 import AppHeader from "../components/AppHeader";
-import Card from "../components/Card";
-import Screen from "../components/Screen";
-import { loadData, StorageKeys } from "../services/storage";
+import { AppCard } from "../components/ui/AppCard";
+import { COLORS } from "../constants/theme";
+import { fetchFarmers } from "../services/farmersApi";
+import { fetchHives } from "../services/hiveApi";
 import { colors } from "../theme/colors";
 import { ui } from "../theme/ui";
 import { daysRemaining } from "../utils/date";
+
+import { ScreenContainer } from "../components/layout/ScreenContainer";
 
 export default function DashboardScreen() {
     const router = useRouter();
@@ -20,29 +24,33 @@ export default function DashboardScreen() {
 
     useEffect(() => {
         const load = async () => {
-            setHives(await loadData(StorageKeys.HIVES, []));
-            setFarmers(await loadData(StorageKeys.FARMERS, []));
+            const h = await fetchHives();
+            const f = await fetchFarmers();
+            setHives(h || []);
+            setFarmers(f || []);
         };
         load();
     }, []);
 
     const harvestSoonCount = useMemo(() => {
         return hives.filter((h) => {
-            const d = daysRemaining(h.harvestDate);
+            const d = daysRemaining(h.expected_harvest_date);
             return d !== null && d >= 0 && d <= 7;
         }).length;
     }, [hives]);
 
-    const activeHives = useMemo(() => hives.filter((h) => h.status === "Active").length, [hives]);
+    const activeHives = useMemo(() => hives.filter((h) => h.status === "ACTIVE").length, [hives]);
 
     const gridGap = 12;
-    const cardWidth = width >= 420 ? (width - 16 * 2 - gridGap) / 2 : width - 16 * 2;
+    const cardWidth = useMemo(() => {
+        return width >= 420 ? (width - 16 * 2 - gridGap) / 2 : width - 16 * 2;
+    }, [width]);
 
     return (
-        <View style={{ flex: 1, backgroundColor: colors.lightGray }}>
+        <View style={{ flex: 1 }}>
             <AppHeader title="Buzz-Off" subtitle="AI-Driven Hive Management System" />
 
-            <Screen>
+            <ScreenContainer>
                 <ScrollView style={styles.body} contentContainerStyle={{ paddingBottom: 28 }}>
                     {/* Top Status Card */}
                     <View style={styles.hero}>
@@ -75,12 +83,12 @@ export default function DashboardScreen() {
                         <ActionButton
                             icon="leaf-outline"
                             label="Calendar"
-                            onPress={() => router.push("/(tabs)/calendar")}
+                            onPress={() => router.push("/profile/calendar")}
                         />
                         <ActionButton
                             icon="book-outline"
                             label="Manual"
-                            onPress={() => router.push("/(tabs)/manual")}
+                            onPress={() => router.push("/profile/manual")}
                         />
                         <ActionButton
                             icon="sparkles-outline"
@@ -128,7 +136,7 @@ export default function DashboardScreen() {
                     </View>
 
                     {/* AI Insights card */}
-                    <Card style={{ marginTop: 6 }}>
+                    <AppCard style={{ marginTop: 6 }}>
                         <View style={styles.aiTop}>
                             <View style={{ flex: 1 }}>
                                 <Text style={styles.cardTitle}>AI Insights</Text>
@@ -142,25 +150,21 @@ export default function DashboardScreen() {
                             </View>
                         </View>
 
-                        <TouchableOpacity
-                            style={styles.primaryBtn}
-                            activeOpacity={0.9}
+                        <ActionButtonAiInsights
+                            label="Open AI Insights"
                             onPress={() => router.push("/(tabs)/insights")}
-                        >
-                            <Text style={styles.primaryBtnText}>Open AI Insights</Text>
-                            <Ionicons name="chevron-forward" size={16} color={colors.black} />
-                        </TouchableOpacity>
-                    </Card>
+                        />
+                    </AppCard>
 
                     {/* Pro Tip */}
-                    <Card style={{ marginTop: 12 }}>
+                    <AppCard style={{ marginTop: 12 }}>
                         <Text style={styles.cardTitle}>Best Practice</Text>
                         <Text style={styles.cardSub}>
                             When harvest is within 7 days, inspect hives twice a week and prepare extraction equipment.
                         </Text>
-                    </Card>
+                    </AppCard>
                 </ScrollView>
-            </Screen>
+            </ScreenContainer>
         </View>
     );
 }
@@ -177,19 +181,52 @@ function StatusPill({ icon, text }) {
 }
 
 function ActionButton({ icon, label, onPress }) {
+    const scale = useSharedValue(1);
+    const aStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: scale.value }],
+    }));
+
     return (
-        <TouchableOpacity style={styles.actionBtn} activeOpacity={0.85} onPress={onPress}>
-            <View style={styles.actionIcon}>
-                <Ionicons name={icon} size={18} color={colors.black} />
-            </View>
-            <Text style={styles.actionText}>{label}</Text>
-        </TouchableOpacity>
+        <Animated.View style={[{ flex: 1 }, aStyle]}>
+            <Pressable
+                onPress={onPress}
+                onPressIn={() => (scale.value = withTiming(0.96, { duration: 90 }))}
+                onPressOut={() => (scale.value = withTiming(1, { duration: 120 }))}
+                style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.9 }]}
+            >
+                <View style={styles.actionIcon}>
+                    <Ionicons name={icon} size={18} color={colors.black} />
+                </View>
+                <Text style={styles.actionText}>{label}</Text>
+            </Pressable>
+        </Animated.View>
+    );
+}
+
+function ActionButtonAiInsights({ label, onPress }) {
+    const scale = useSharedValue(1);
+    const aStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: scale.value }],
+    }));
+
+    return (
+        <Animated.View style={aStyle}>
+            <Pressable
+                onPress={onPress}
+                onPressIn={() => (scale.value = withTiming(0.96, { duration: 90 }))}
+                onPressOut={() => (scale.value = withTiming(1, { duration: 120 }))}
+                style={({ pressed }) => [styles.primaryBtn, pressed && { opacity: 0.9 }]}
+            >
+                <Text style={styles.primaryBtnText}>{label}</Text>
+                <Ionicons name="chevron-forward" size={16} color={colors.black} />
+            </Pressable>
+        </Animated.View>
     );
 }
 
 function MiniStat({ title, value, subtitle, icon, width, highlight }) {
     return (
-        <Card style={[styles.miniCard, { width }, highlight && styles.miniHighlight]}>
+        <AppCard style={[styles.miniCard, { width }, highlight && styles.miniHighlight]}>
             <View style={styles.miniTop}>
                 <Text style={styles.miniTitle}>{title}</Text>
                 <Ionicons name={icon} size={18} color={highlight ? colors.amberDark : "#111827"} />
@@ -197,7 +234,7 @@ function MiniStat({ title, value, subtitle, icon, width, highlight }) {
 
             <Text style={styles.miniValue}>{value}</Text>
             <Text style={styles.miniSub}>{subtitle}</Text>
-        </Card>
+        </AppCard>
     );
 }
 
@@ -237,7 +274,7 @@ const styles = StyleSheet.create({
     sectionTitle: {
         marginTop: 22,
         marginBottom: 10,
-        color: "#6B7280",
+        color: COLORS.textSecondary,
         fontSize: 12,
         fontWeight: "900",
         letterSpacing: 1,
@@ -259,7 +296,7 @@ const styles = StyleSheet.create({
     actionsRow: { flexDirection: "row", justifyContent: "space-between", gap: 10 },
     actionBtn: {
         flex: 1,
-        backgroundColor: colors.white,
+        backgroundColor: COLORS.card,
         borderWidth: 1,
         borderColor: "#E6E8EC",
         borderRadius: ui.radius.l,

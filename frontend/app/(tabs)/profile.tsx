@@ -15,105 +15,115 @@ import Card from "../../src/components/Card";
 import { colors } from "../../src/theme/colors";
 import { ui } from "../../src/theme/ui";
 
+import { ScreenContainer } from "../../src/components/layout/ScreenContainer";
+import { COLORS } from "../../src/constants/theme";
+import { useAuth } from "../../src/context/AuthContext";
+
 export default function ProfileScreen() {
     const router = useRouter();
+    const { logout } = useAuth();
 
     // 🔐 Backend-auth simulated user
     const phone = "Logged in user";
     const role = "Beekeeper";
 
-    const logout = () => {
+    const handleLogout = () => {
         Alert.alert("Logout", "Do you want to logout?", [
             { text: "Cancel", style: "cancel" },
             {
                 text: "Logout",
                 style: "destructive",
-                onPress: () => router.replace("/(auth)/login"),
+                onPress: async () => {
+                    await logout();
+                    router.replace("/(auth)/login");
+                },
             },
         ]);
     };
 
     return (
-        <View style={{ flex: 1, backgroundColor: colors.lightGray }}>
+        <View style={{ flex: 1 }}>
             <AppHeader title="Profile" subtitle="Account & tools" />
 
-            <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
-                {/* 👤 User Card */}
-                <Card style={styles.userCard}>
-                    <View style={styles.avatar}>
-                        <Text style={styles.avatarText}>B</Text>
-                    </View>
+            <ScreenContainer>
+                <ScrollView contentContainerStyle={{ paddingVertical: 16, paddingBottom: 40 }}>
+                    {/* 👤 User Card */}
+                    <Card style={styles.userCard}>
+                        <View style={styles.avatar}>
+                            <Text style={styles.avatarText}>B</Text>
+                        </View>
 
-                    <View style={{ flex: 1 }}>
-                        <Text style={styles.name}>Beekeeper</Text>
-                        <Text style={styles.email}>{phone}</Text>
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.name}>Beekeeper</Text>
+                            <Text style={styles.email}>{phone}</Text>
 
-                        <View style={styles.badgeRow}>
-                            <View style={[styles.badge, styles.badgeOk]}>
-                                <Ionicons name="checkmark-circle" size={14} color={colors.success} />
-                                <Text style={[styles.badgeText, { color: colors.success }]}>
-                                    Verified
-                                </Text>
+                            <View style={styles.badgeRow}>
+                                <View style={[styles.badge, styles.badgeOk]}>
+                                    <Ionicons name="checkmark-circle" size={14} color={colors.success} />
+                                    <Text style={[styles.badgeText, { color: colors.success }]}>
+                                        Verified
+                                    </Text>
+                                </View>
+
+                                <View style={[styles.badge, styles.badgeRole]}>
+                                    <Ionicons name="shield-outline" size={14} color={colors.black} />
+                                    <Text style={[styles.badgeText, { color: colors.black }]}>
+                                        {role}
+                                    </Text>
+                                </View>
                             </View>
+                        </View>
+                    </Card>
 
-                            <View style={[styles.badge, styles.badgeRole]}>
-                                <Ionicons name="shield-outline" size={14} color={colors.black} />
-                                <Text style={[styles.badgeText, { color: colors.black }]}>
-                                    {role}
+                    {/* 🧰 Tools */}
+                    <Text style={styles.section}>TOOLS</Text>
+
+                    <Grid>
+                        <ToolTile
+                            title="Farming Manual"
+                            subtitle="Offline guide"
+                            icon="book-outline"
+                            onPress={() => router.push("/profile/manual")}
+                        />
+                        <ToolTile
+                            title="Flowering Calendar"
+                            subtitle="Season planner"
+                            icon="calendar-outline"
+                            onPress={() => router.push("/profile/calendar")}
+                        />
+                        <ToolTile
+                            title="Settings"
+                            subtitle="App preferences"
+                            icon="settings-outline"
+                            onPress={() => router.push("/profile/settings")}
+                        />
+                    </Grid>
+
+                    {/* 🚪 Logout */}
+                    <Text style={styles.section}>ACCOUNT</Text>
+
+                    <TouchableOpacity
+                        style={[styles.actionRow, styles.danger]}
+                        activeOpacity={0.9}
+                        onPress={handleLogout}
+                    >
+                        <View style={styles.actionLeft}>
+                            <View style={[styles.iconWrap, { backgroundColor: "#FEE2E2" }]}>
+                                <Ionicons name="log-out-outline" size={18} color={colors.danger} />
+                            </View>
+                            <View>
+                                <Text style={[styles.actionTitle, { color: colors.danger }]}>
+                                    Logout
                                 </Text>
+                                <Text style={styles.actionSub}>Sign out of app</Text>
                             </View>
                         </View>
-                    </View>
-                </Card>
+                        <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
+                    </TouchableOpacity>
 
-                {/* 🧰 Tools */}
-                <Text style={styles.section}>TOOLS</Text>
-
-                <Grid>
-                    <ToolTile
-                        title="Farming Manual"
-                        subtitle="Offline guide"
-                        icon="book-outline"
-                        onPress={() => router.push("/(tabs)/manual")}
-                    />
-                    <ToolTile
-                        title="Flowering Calendar"
-                        subtitle="Season planner"
-                        icon="calendar-outline"
-                        onPress={() => router.push("/(tabs)/calendar")}
-                    />
-                    <ToolTile
-                        title="Settings"
-                        subtitle="App preferences"
-                        icon="settings-outline"
-                        onPress={() => router.push("/(tabs)/settings")}
-                    />
-                </Grid>
-
-                {/* 🚪 Logout */}
-                <Text style={styles.section}>ACCOUNT</Text>
-
-                <TouchableOpacity
-                    style={[styles.actionRow, styles.danger]}
-                    activeOpacity={0.9}
-                    onPress={logout}
-                >
-                    <View style={styles.actionLeft}>
-                        <View style={[styles.iconWrap, { backgroundColor: "#FEE2E2" }]}>
-                            <Ionicons name="log-out-outline" size={18} color={colors.danger} />
-                        </View>
-                        <View>
-                            <Text style={[styles.actionTitle, { color: colors.danger }]}>
-                                Logout
-                            </Text>
-                            <Text style={styles.actionSub}>Sign out of app</Text>
-                        </View>
-                    </View>
-                    <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
-                </TouchableOpacity>
-
-                <Text style={styles.footer}>Buzz-Off • v1.0</Text>
-            </ScrollView>
+                    <Text style={styles.footer}>Buzz-Off • v1.0</Text>
+                </ScrollView>
+            </ScreenContainer>
         </View>
     );
 }
@@ -187,7 +197,7 @@ const styles = StyleSheet.create({
         marginTop: 18,
         marginBottom: 10,
         fontWeight: "900",
-        color: "#6B7280",
+        color: COLORS.textSecondary,
         letterSpacing: 1,
         fontSize: 12,
     },
@@ -196,7 +206,7 @@ const styles = StyleSheet.create({
 
     tile: {
         width: "48%",
-        backgroundColor: "#FFFFFF",
+        backgroundColor: COLORS.card,
         borderRadius: ui.radius.xl,
         borderWidth: 1,
         borderColor: "#E6E8EC",
@@ -229,7 +239,7 @@ const styles = StyleSheet.create({
     },
 
     actionRow: {
-        backgroundColor: "#fff",
+        backgroundColor: COLORS.card,
         borderWidth: 1,
         borderColor: "#E6E8EC",
         padding: 16,
@@ -258,7 +268,7 @@ const styles = StyleSheet.create({
         textAlign: "center",
         marginTop: 18,
         fontWeight: "800",
-        color: "#9CA3AF",
+        color: COLORS.textSecondary,
         fontSize: 12,
     },
 });

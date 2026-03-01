@@ -1,40 +1,51 @@
-// src/context/AuthContext.tsx
-import { onAuthStateChanged, User } from "firebase/auth";
+import * as SecureStore from "expo-secure-store";
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { auth } from "../services/firebase";
 
 type AuthContextType = {
-  user: User | null;
+  user: any | null;
   loading: boolean;
-  refreshUser: () => Promise<void>;
+  setUser: (user: any) => void;
+  logout: () => Promise<void>;
 };
 
 export const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
-  refreshUser: async () => { },
+  setUser: () => { },
+  logout: async () => { },
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => {
-      setUser(u);
-      setLoading(false);
-    });
-    return unsub;
+    const checkAuth = async () => {
+      try {
+        const token = await SecureStore.getItemAsync("authToken");
+
+        if (token) {
+          // In a real app, we might fetch user profile here
+          // For now, we'll simulate a logged in user if token exists
+          setUser({ phone_number: "Stored User", role: "Beekeeper" });
+        }
+      } catch (e) {
+        console.error("Auth check error:", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkAuth();
   }, []);
 
-  const refreshUser = async () => {
-    if (!auth.currentUser) return;
-    await auth.currentUser.reload();
-    setUser(auth.currentUser);
+  const logout = async () => {
+    await SecureStore.deleteItemAsync("authToken");
+    setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, refreshUser }}>
+    <AuthContext.Provider value={{ user, loading, setUser, logout }}>
       {children}
     </AuthContext.Provider>
   );
